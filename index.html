@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Inicio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  /* Pantalla de inicio para TV VIDAA. Diseñada a 1920x1080 y escalada al tamaño real.
+     Sin blur ni video: el procesador de la tele es modesto. */
+  :root {
+    --texto: #f5f5f7;
+    --suave: rgba(245, 245, 247, .62);
+    --vidrio-borde: rgba(255, 255, 255, .62);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background: #000; color: var(--texto);
+    font-family: 'Outfit', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; cursor: default;
+  }
+  #escenario {
+    position: absolute; left: 50%; top: 50%;
+    width: 1920px; height: 1080px; margin: -540px 0 0 -960px;
+    overflow: hidden; background: #000;
+  }
+  .capa { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+
+  /* Fondo según el clima */
+  #cielo { background: linear-gradient(180deg, #0d1a2c 0%, #060c16 55%, #000 100%); opacity: 0; transition: opacity 1.5s ease; z-index: 0; }
+  .lluvioso #cielo { opacity: 1; }
+
+  /* Ilustración del "continuar viendo" (dos capas que se funden) */
+  .arte { z-index: 1; opacity: 0; transition: opacity .7s ease; background-size: cover; background-position: center; }
+  .arte.activo { opacity: 1; }
+  #sombra-arte {
+    z-index: 2;
+    background:
+      linear-gradient(90deg, #000 0%, rgba(0,0,0,.88) 30%, rgba(0,0,0,.35) 62%, rgba(0,0,0,.1) 100%),
+      linear-gradient(0deg, #000 0%, rgba(0,0,0,.9) 20%, rgba(0,0,0,0) 52%),
+      linear-gradient(180deg, rgba(0,0,0,.75) 0%, rgba(0,0,0,0) 28%);
+  }
+
+  .resplandor { z-index: 2; left: -260px; top: 420px; width: 1600px; height: 1000px; opacity: 0; transition: opacity .7s ease; }
+  .resplandor.activo { opacity: .34; }
+
+  #lluvia { z-index: 3; width: 1920px; height: 1080px; opacity: 0; transition: opacity 1.2s ease; }
+  .lluvioso #lluvia { opacity: 1; }
+  #rayo { z-index: 4; background: #cfdcff; opacity: 0; transition: opacity .12s ease-out; }
+
+  .capa-ui { z-index: 6; pointer-events: auto; }
+
+  /* Arriba a la izquierda: saludo, hora y fecha */
+  #izquierda { position: absolute; left: 96px; top: 64px; transition: opacity .4s ease; }
+  .saludo { font-size: 32px; font-weight: 300; color: var(--suave); }
+  .reloj { font-size: 128px; font-weight: 200; line-height: 1; letter-spacing: -4px; margin-top: 6px; }
+  .reloj small { font-size: 38px; font-weight: 300; letter-spacing: 0; margin-left: 12px; color: var(--suave); }
+  .fecha { font-size: 32px; font-weight: 300; color: var(--suave); margin-top: 10px; }
+
+  /* Arriba a la derecha: clima y canción */
+  #derecha { position: absolute; right: 96px; top: 72px; display: flex; flex-direction: column; align-items: flex-end; }
+  .pastilla {
+    display: flex; align-items: center; padding: 14px 32px 14px 22px; border-radius: 999px;
+    background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .13);
+    margin-bottom: 18px; opacity: 0; transition: opacity .5s ease;
+  }
+  .pastilla.visible { opacity: 1; }
+  #clima .icono { width: 76px; height: 76px; margin-right: 14px; }
+  #clima .icono svg { width: 76px; height: 76px; display: block; }
+  #clima .temp { font-size: 54px; font-weight: 600; margin-right: 22px; letter-spacing: -1px; }
+  #clima .cond { font-size: 30px; font-weight: 400; line-height: 1.15; }
+  #clima .lugar { font-size: 24px; font-weight: 300; color: var(--suave); }
+
+  .fila-arriba { display: flex; align-items: center; margin-bottom: 18px; }
+  .fila-arriba .pastilla { margin-bottom: 0; }
+
+  /* Botones redondos "liquid glass" (el único desenfoque de la pantalla: son pequeños) */
+  .boton-liquido {
+    position: relative; width: 88px; height: 88px; border-radius: 50%; margin-left: 20px; flex: none;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    background: radial-gradient(120% 120% at 30% 18%, rgba(255,255,255,.34) 0%, rgba(255,255,255,.10) 40%,
+      rgba(255,255,255,.04) 62%, rgba(255,255,255,.14) 100%);
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -8px 16px rgba(255,255,255,.10),
+      0 12px 30px rgba(0,0,0,.45);
+    -webkit-backdrop-filter: blur(14px) saturate(1.7); backdrop-filter: blur(14px) saturate(1.7);
+    transition: transform .32s cubic-bezier(.34, 1.4, .64, 1), box-shadow .3s ease;
+  }
+  .boton-liquido::before {   /* brillo especular arriba */
+    content: ''; position: absolute; left: 17%; top: 7%; width: 54%; height: 32%; border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,0)); opacity: .5;
+  }
+  .boton-liquido::after {    /* luz refractada abajo */
+    content: ''; position: absolute; left: 12%; right: 12%; bottom: 5%; height: 24%; border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.28), rgba(255,255,255,0) 70%);
+  }
+  .boton-liquido svg { position: relative; z-index: 1; width: 42px; height: 42px; }
+  .boton-liquido.foco {
+    transform: scale(1.15);
+    box-shadow: inset 0 2px 1px rgba(255,255,255,.6), inset 0 -8px 16px rgba(255,255,255,.14),
+      0 0 0 3px rgba(255,255,255,.7), 0 0 44px rgba(255,255,255,.35);
+  }
+  .etiqueta-boton {
+    position: absolute; top: 104px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+    font-size: 24px; font-weight: 400; opacity: 0; transition: opacity .25s ease; pointer-events: none;
+  }
+  .boton-liquido.foco .etiqueta-boton { opacity: 1; }
+  .boton-liquido.abierto .etiqueta-boton { opacity: 0; }
+
+  /* Menú de configuración que se despliega bajo el botón */
+  #menu-ajustes {
+    position: absolute; right: 96px; top: 196px; width: 560px; padding: 14px; border-radius: 30px; z-index: 8;
+    background: rgba(30, 30, 36, .94); border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 30px 70px rgba(0,0,0,.6);
+    opacity: 0; transform: translateY(-12px) scale(.97); transform-origin: 90% 0; visibility: hidden;
+    transition: opacity .25s ease, transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .3s;
+  }
+  #menu-ajustes.visible { opacity: 1; transform: none; visibility: visible; transition: opacity .25s ease, transform .3s cubic-bezier(.2, .8, .2, 1); }
+  #menu-ajustes .opcion {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 26px; border-radius: 18px; font-size: 30px; font-weight: 400;
+  }
+  #menu-ajustes .opcion small { font-size: 22px; color: var(--suave); margin-left: 24px; white-space: nowrap; }
+  #menu-ajustes .opcion.foco { background: #fff; color: #000; }
+  #menu-ajustes .opcion.foco small { color: rgba(0,0,0,.55); }
+
+  #sonando { padding: 12px 34px 12px 14px; max-width: 760px; }
+  #sonando .disco {
+    width: 62px; height: 62px; border-radius: 14px; margin-right: 18px; flex: none;
+    background: linear-gradient(135deg, #fa233b, #fb5c74); display: flex; align-items: center; justify-content: center;
+  }
+  #sonando .textos { min-width: 0; margin-right: 22px; }
+  #sonando .cancion { font-size: 30px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 460px; }
+  #sonando .artista { font-size: 24px; font-weight: 300; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 460px; }
+  .ecualizador { display: flex; align-items: flex-end; height: 30px; flex: none; }
+  .ecualizador i { display: block; width: 6px; margin-left: 5px; background: #fff; border-radius: 3px; height: 8px; animation: salto 0.9s ease-in-out infinite; }
+  .ecualizador i:nth-child(2) { animation-delay: .25s; }
+  .ecualizador i:nth-child(3) { animation-delay: .5s; }
+  @keyframes salto { 0%, 100% { height: 8px; } 50% { height: 28px; } }
+
+  /* Continuar viendo */
+  #heroe { position: absolute; left: 96px; top: 400px; width: 1100px; transition: opacity .35s ease; }
+  #heroe.vacio { display: none; }
+  #heroe .contenido.cambia { animation: aparece .5s ease; }
+  @keyframes aparece { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .etiqueta-heroe { display: flex; align-items: center; font-size: 26px; font-weight: 600; letter-spacing: 3px; color: var(--suave); text-transform: uppercase; }
+  .chip { margin-left: 18px; padding: 6px 18px; border-radius: 999px; background: rgba(255,255,255,.14); font-size: 24px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--texto); }
+  .chip.ejemplo { background: rgba(255, 200, 60, .22); color: #ffd36b; }
+  #h-titulo { font-size: 92px; font-weight: 300; letter-spacing: -2px; line-height: 1.1; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #h-sub { font-size: 32px; font-weight: 300; color: var(--suave); margin-top: 2px; }
+  .progreso { display: flex; align-items: center; margin-top: 24px; }
+  .barra { width: 380px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.2); overflow: hidden; margin-right: 20px; }
+  .barra i { display: block; height: 100%; background: #fff; border-radius: 4px; }
+  #h-rest { font-size: 28px; font-weight: 400; color: var(--suave); }
+  .acciones { display: flex; align-items: center; margin-top: 30px; }
+  #h-boton {
+    display: flex; align-items: center; padding: 16px 38px 16px 28px; border-radius: 999px;
+    background: rgba(255,255,255,.16); font-size: 30px; font-weight: 600; transition: background .25s ease, color .25s ease, transform .3s cubic-bezier(.34,1.4,.64,1);
+  }
+  #h-boton svg { margin-right: 14px; }
+  #h-boton.foco { background: #fff; color: #000; transform: scale(1.06); }
+  #h-boton.foco svg path { fill: #000; }
+  #h-pag { margin-left: 28px; font-size: 28px; font-weight: 400; color: var(--suave); padding: 12px 24px; border-radius: 999px; transition: background .25s ease, color .25s ease; }
+  #h-pag.sin-boton { margin-left: 0; }
+  #h-pag.foco { background: rgba(255,255,255,.16); color: var(--texto); }
+  #h-pag b { color: var(--texto); font-weight: 600; }
+  #h-rest.estrellas { font-size: 38px; letter-spacing: 3px; color: #ffc933; }
+
+  /* Póster a la derecha (diario de Letterboxd) */
+  #poster {
+    position: absolute; left: 1488px; top: 318px; width: 288px; height: 432px; border-radius: 18px;
+    background-size: cover; background-position: center; background-color: #1a1a1e;
+    box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.1);
+    opacity: 0; transition: opacity .5s ease;
+  }
+  #poster.visible { opacity: 1; }
+  #poster.cambia { animation: aparece .5s ease; }
+
+  /* Filas de apps, centradas. Al bajar a la segunda fila todo sube. */
+  #mover { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transition: transform .55s cubic-bezier(.2, .8, .2, 1); }
+  #mover.abajo { transform: translateY(-262px); }
+  #derecha { transition: opacity .4s ease; }
+  #mover.abajo #izquierda, #mover.abajo #derecha { opacity: 0; }
+  #apps { position: absolute; left: 0; top: 798px; width: 1920px; }
+  .app { position: absolute; top: 0; width: 276px; height: 155px; transition: transform .32s cubic-bezier(.34, 1.4, .64, 1); }
+  .app .cara {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 26px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .55);
+  }
+  .app .cara img { display: block; width: auto; max-width: 74%; object-fit: contain; }
+  .app .cara .play { margin-top: 4px; font-size: 24px; font-weight: 800; color: #2d3277; letter-spacing: .5px; }
+  .app .nombre { position: absolute; left: -20px; right: -20px; top: 174px; text-align: center; font-size: 27px; font-weight: 400; opacity: 0; transition: opacity .25s ease; }
+  .app.foco { transform: scale(1.1); z-index: 2; }
+  .app.foco .nombre { opacity: 1; }
+  #vidrio {
+    position: absolute; left: 0; top: 0; width: 276px; height: 155px; border-radius: 26px; z-index: 5; pointer-events: none;
+    border: 3px solid var(--vidrio-borde);
+    background: linear-gradient(135deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.06) 45%, rgba(255,255,255,0) 60%);
+    box-shadow: 0 0 46px rgba(255,255,255,.2); opacity: 0;
+    transition: transform .4s cubic-bezier(.34, 1.45, .55, 1), opacity .25s ease;
+  }
+  #vidrio.visible { opacity: 1; }
+
+  /* Mosaico de Clima: temperatura en vivo */
+  .clima-mini { display: flex; align-items: center; font-size: 30px; font-weight: 400; color: #fff; }
+  .clima-mini .mini-icono { width: 86px; height: 86px; margin-right: 4px; }
+  .clima-mini .mini-icono svg { width: 86px; height: 86px; display: block; }
+  .clima-mini .mini-temp { font-size: 62px; font-weight: 300; letter-spacing: -1px; }
+  .mini-lugar { font-size: 20px; font-weight: 400; color: rgba(255,255,255,.78); margin-top: -8px; }
+
+  /* Pantalla de pronóstico (se abre desde el mosaico de Clima) */
+  #panel-clima {
+    position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 25; padding: 64px 96px 0;
+    opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s linear .35s;
+  }
+  #panel-clima { background: #0b1229; }
+  #panel-clima.visible { opacity: 1; visibility: visible; transition: opacity .35s ease; }
+  .pc-arriba { display: flex; align-items: center; }
+  .pc-icono { width: 190px; height: 190px; margin-right: 40px; flex: none; }
+  .pc-icono svg { width: 190px; height: 190px; display: block; }
+  .pc-lugar { font-size: 32px; font-weight: 300; color: var(--suave); }
+  .pc-temp { font-size: 144px; font-weight: 200; line-height: 1; letter-spacing: -5px; }
+  .pc-cond { font-size: 44px; font-weight: 400; margin-top: 4px; }
+  .pc-datos { font-size: 28px; font-weight: 300; color: var(--suave); margin-top: 10px; }
+  .pc-hoy { margin-left: auto; text-align: right; }
+  .pc-hoy .grande { font-size: 44px; font-weight: 400; }
+  .pc-hoy .chico { font-size: 28px; font-weight: 300; color: var(--suave); margin-top: 10px; }
+  .pc-titulo { font-size: 26px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--suave); margin: 34px 0 14px; }
+  .pc-horas, .pc-dias { display: flex; justify-content: space-between; }
+  .pc-hora, .pc-dia { text-align: center; padding: 14px 0 10px; border-radius: 22px; background: rgba(255,255,255,.08); }
+  .pc-hora { width: 132px; }
+  .pc-dia { width: 236px; }
+  .pc-hora .h { font-size: 26px; color: var(--suave); }
+  .pc-dia .d { font-size: 28px; font-weight: 400; }
+  .pc-hora .i, .pc-dia .i { width: 64px; height: 64px; margin: 6px auto; }
+  .pc-hora .i svg, .pc-dia .i svg { width: 64px; height: 64px; display: block; }
+  .pc-hora .t { font-size: 34px; font-weight: 400; }
+  .pc-dia .t { font-size: 32px; font-weight: 400; }
+  .pc-dia .t span { color: var(--suave); font-weight: 300; margin-left: 8px; }
+  .lluvia-prob { font-size: 22px; color: #8cc6ff; margin-top: 4px; min-height: 28px; }
+  .pc-ayuda { position: absolute; left: 0; right: 0; bottom: 40px; text-align: center; font-size: 24px; color: var(--suave); }
+
+  #aviso {
+    position: absolute; left: 50%; top: 48px; z-index: 20; transform: translate(-50%, -30px); opacity: 0;
+    padding: 20px 38px; border-radius: 999px; background: rgba(40,40,44,.96); border: 1px solid rgba(255,255,255,.14);
+    font-size: 30px; white-space: nowrap; transition: opacity .3s ease, transform .4s cubic-bezier(.2,.8,.2,1);
+  }
+  #aviso.visible { opacity: 1; transform: translate(-50%, 0); }
+  #diagnostico {
+    position: absolute; right: 40px; top: 40px; bottom: 40px; width: 900px; z-index: 30; display: none;
+    padding: 36px 40px; border-radius: 28px; background: rgba(20,20,24,.97); border: 1px solid rgba(255,255,255,.15);
+    font-size: 22px; line-height: 1.45; overflow: hidden;
+  }
+  #diagnostico.visible { display: block; }
+  #diagnostico h2 { font-size: 34px; font-weight: 600; margin-bottom: 14px; }
+  #diagnostico .dato { color: var(--suave); word-break: break-all; margin-bottom: 10px; }
+  #diagnostico .funciones { columns: 2; column-gap: 30px; font-family: Menlo, monospace; font-size: 18px; }
+</style>
+</head>
+<body>
+<div id="escenario">
+  <div class="capa" id="cielo"></div>
+  <div class="capa arte" id="arte-a"></div>
+  <div class="capa arte" id="arte-b"></div>
+  <div class="capa" id="sombra-arte"></div>
+  <div class="capa resplandor" id="resplandor-a"></div>
+  <div class="capa resplandor" id="resplandor-b"></div>
+  <canvas class="capa" id="lluvia" width="960" height="540"></canvas>
+  <div class="capa" id="rayo"></div>
+
+  <div class="capa capa-ui"><div id="mover">
+    <div id="izquierda">
+      <div class="saludo" id="saludo"></div>
+      <div class="reloj" id="reloj"></div>
+      <div class="fecha" id="fecha"></div>
+    </div>
+
+    <div id="derecha">
+      <div class="fila-arriba">
+        <div class="pastilla" id="clima"></div>
+        <div class="boton-liquido" id="btn-auriculares">
+          <svg viewBox="0 0 40 40"><path d="M8 25v-5a12 12 0 0 1 24 0v5" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/><rect x="5" y="22" width="8" height="12" rx="3.2" fill="#fff"/><rect x="27" y="22" width="8" height="12" rx="3.2" fill="#fff"/></svg>
+          <span class="etiqueta-boton">Auriculares</span>
+        </div>
+        <div class="boton-liquido" id="btn-ajustes">
+          <svg viewBox="0 0 40 40"><g fill="#fff"><rect x="17" y="2.5" width="6" height="8" rx="1.6"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(45 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(90 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(135 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(180 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(225 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(270 20 20)"/><rect x="17" y="2.5" width="6" height="8" rx="1.6" transform="rotate(315 20 20)"/></g><circle cx="20" cy="20" r="9.5" stroke="#fff" stroke-width="5.5" fill="none"/></svg>
+          <span class="etiqueta-boton">Configuración</span>
+        </div>
+      </div>
+      <div class="pastilla" id="sonando"></div>
+    </div>
+    <div id="menu-ajustes"></div>
+
+    <div id="poster"></div>
+
+    <div id="heroe" class="vacio">
+      <div class="contenido" id="h-contenido">
+        <div class="etiqueta-heroe"><span id="h-etiqueta">Continuar viendo</span> <span class="chip" id="h-app"></span><span class="chip ejemplo" id="h-ejemplo" style="display:none">Ejemplo</span></div>
+        <div id="h-titulo"></div>
+        <div id="h-sub"></div>
+        <div class="progreso"><div class="barra"><i id="h-barra"></i></div><span id="h-rest"></span></div>
+        <div class="acciones">
+          <div id="h-boton"><svg width="26" height="28" viewBox="0 0 26 28"><path d="M3 2 L23 14 L3 26 Z" fill="#fff"/></svg>Reanudar</div>
+          <div id="h-pag"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="apps"><div id="vidrio"></div></div>
+  </div></div>
+
+  <div id="panel-clima"></div>
+  <div id="aviso"></div>
+  <div id="diagnostico"></div>
+</div>
+
+<script>
+  // ---------- Ajustes: cambia aquí tu nombre, tu ubicación y tus apps ----------
+  var CONFIG = {
+    nombre: 'Francisco',
+    reloj24h: true,
+    zonaHoraria: -3,                     // Argentina: UTC-3, sin horario de verano
+    clima: { lugar: 'Garín', lat: -34.42127, lon: -58.73684 },
+    auriculares: 'Redmi AirDots 3',
+    // Dirección del vigilante en tu red (p. ej. 'http://192.168.1.50:8765'). Vacío hasta instalarlo.
+    vigilante: '',
+    filas: [
+      ['appletv', 'disney', 'youtube', 'hbomax', 'applemusic', 'netflix'],
+      ['mubi', 'prime', 'paramount', 'meli', 'twitch', 'clima']
+    ]
+  };
+
+  var APPS = {
+    appletv:    { nombre: 'Apple TV',    logo: 'logos/appletv.svg',    alto: 61, blanco: true, color: '#8e8e93', fondo: 'linear-gradient(160deg,#2c2c30,#0b0b0d)' },
+    disney:     { nombre: 'Disney+',     logo: 'logos/disney.svg',     alto: 85, blanco: true, color: '#1f6bff', fondo: 'linear-gradient(135deg,#0a1a58,#1c44b0)' },
+    youtube:    { nombre: 'YouTube',     logo: 'logos/youtube.svg',    alto: 52, color: '#ff0000', fondo: '#ffffff' },
+    hbomax:     { nombre: 'HBO Max',     logo: 'logos/hbomax.svg',     alto: 48, blanco: true, color: '#7b3cff', fondo: 'linear-gradient(135deg,#210a5c,#5b21d6)' },
+    netflix:    { nombre: 'Netflix',     logo: 'logos/netflix.svg',    alto: 61, color: '#e50914', fondo: 'linear-gradient(160deg,#1d1d1d,#000)' },
+    mubi:       { nombre: 'MUBI',        logo: 'logos/mubi.svg',       alto: 50, color: '#d9d9d9', fondo: '#f2f2f2' },
+    prime:      { nombre: 'Prime Video', logo: 'logos/prime.svg',      alto: 68, color: '#00a8e1', fondo: 'linear-gradient(160deg,#1a2530,#0a1016)' },
+    paramount:  { nombre: 'Paramount+',  logo: 'logos/paramount.svg',  alto: 61, blanco: true, color: '#0064ff', fondo: 'linear-gradient(135deg,#0a3fd1,#0a6dff)' },
+    meli:       { nombre: 'Mercado Play', logo: 'logos/meli.svg',      alto: 44, color: '#ffe600', fondo: '#ffe600', extra: '<div class="play">PLAY ▶</div>' },
+    twitch:     { nombre: 'Twitch',      logo: 'logos/twitch.svg',     alto: 63, color: '#9146ff', fondo: 'linear-gradient(160deg,#18181b,#0a0a0c)' },
+    applemusic: { nombre: 'Apple Music', logo: 'logos/applemusic.svg', alto: 46, blanco: true, color: '#fa233b', fondo: 'linear-gradient(135deg,#fa233b,#fb5c74)' },
+    // App propia: muestra la temperatura en vivo y abre el pronóstico de Garín
+    clima:      { nombre: 'Clima', tipo: 'clima', color: '#3b8fe0', fondo: 'linear-gradient(160deg,#3b8fe0,#1a5aa6)' }
+  };
+
+  // Dirección web de cada app, tal como la informa la tele. Sin vigilante, la pantalla
+  // intenta abrir la app yendo a esa dirección. Netflix, Prime Video y YouTube son nativas: no tienen.
+  var WEB_APPS = {
+    appletv: 'https://atve.tv.apple.com/94819831-5404-4438-810e-afb648d6a826/tvw_1dc2aab0a313427dbc11818be8a18bd9/',
+    disney: 'https://cd-dmgz.bamgrid.com/bbd/hisense_tv/index.html',
+    hbomax: 'https://vidaa.play.max.com/',
+    paramount: 'https://www.intl.paramountplus.com/smart-console-apps/vidaa/',
+    meli: 'https://play.meli.com/tv',
+    twitch: 'https://ryxjogfhxnvjuptmzkhk.tv.twitch.tv',
+    mubi: 'https://tv-production.mubi.com/vidaa/4.0.0/',
+    youtube: 'https://www.youtube.com/tv'
+  };
+  // Apps nativas que la tele abre por DIAL (el mismo pedido que manda un celular al "enviar a la tele").
+  // Netflix solo acepta pedidos de Netflix, así que sin vigilante se abre con su botón del control.
+  var DIAL_APPS = { prime: 'AmazonInstantVideo' };
+  var PUERTO_DIAL = 3367;
+
+  // ---------- Utilidades ----------
+  var consulta = {};
+  (location.search || '').replace(/^\?/, '').split('&').forEach(function (par) {
+    var p = par.split('=');
+    if (p[0]) consulta[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || '');
+  });
+
+  function pedirJSON(url, ok, fallo) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url + (url.indexOf('?') < 0 ? '?t=' : '&t=') + Date.now());
+    xhr.onload = function () {
+      try { ok(JSON.parse(xhr.responseText)); } catch (e) { if (fallo) fallo(); }
+    };
+    xhr.onerror = function () { if (fallo) fallo(); };
+    xhr.send();
+  }
+  function porId(id) { return document.getElementById(id); }
+
+  // ---------- Escala 1920x1080 ----------
+  var escenario = porId('escenario');
+  function ajustarEscala() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    escenario.style.transform = 'scale(' + s + ')';
+  }
+
+  // ---------- Hora, fecha y saludo (siempre hora de Argentina) ----------
+  var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+    'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  function actualizarHora() {
+    var d = new Date(Date.now() + CONFIG.zonaHoraria * 3600000);
+    var h = d.getUTCHours(), m = d.getUTCMinutes();
+    var saludo = h < 6 ? 'Buenas noches' : (h < 13 ? 'Buen día' : (h < 20 ? 'Buenas tardes' : 'Buenas noches'));
+    porId('saludo').textContent = saludo + (CONFIG.nombre ? ', ' + CONFIG.nombre : '');
+    var mm = (m < 10 ? '0' : '') + m;
+    if (CONFIG.reloj24h) porId('reloj').textContent = (h < 10 ? '0' : '') + h + ':' + mm;
+    else porId('reloj').innerHTML = ((h % 12) || 12) + ':' + mm + '<small>' + (h < 12 ? 'a. m.' : 'p. m.') + '</small>';
+    var dia = DIAS[d.getUTCDay()];
+    porId('fecha').textContent = dia.charAt(0).toUpperCase() + dia.slice(1) + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
+  }
+
+  // ---------- Iconos animados del clima (SVG con animaciones SMIL, compatibles con navegadores de TV) ----------
+  var NUBE = 'M18 48 C9 48 7 37 15 34 C14 24 25 19 31 26 C35 18 47 20 48 30 C57 30 58 48 48 48 Z';
+  function nube(relleno, tx, ty) {
+    var t = tx ? ' transform="translate(' + tx + ' ' + ty + ')"' : '';
+    return '<g' + t + '><path d="' + NUBE + '" fill="' + relleno + '">' +
+      '<animateTransform attributeName="transform" type="translate" values="0 0;2.5 0;0 0" dur="6s" repeatCount="indefinite"/></path></g>';
+  }
+  function sol(cx, cy, r) {
+    var rayos = '';
+    for (var i = 0; i < 8; i++) {
+      rayos += '<line x1="' + cx + '" y1="' + (cy - r - 5) + '" x2="' + cx + '" y2="' + (cy - r - 11) + '" transform="rotate(' + (i * 45) + ' ' + cx + ' ' + cy + ')"/>';
+    }
+    return '<g><g stroke="#ffc933" stroke-width="3.2" stroke-linecap="round">' + rayos +
+      '<animateTransform attributeName="transform" type="rotate" from="0 ' + cx + ' ' + cy + '" to="360 ' + cx + ' ' + cy + '" dur="28s" repeatCount="indefinite"/></g>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffc933"/></g>';
+  }
+  function luna(dx, dy) {
+    return '<g transform="translate(' + (dx || 0) + ' ' + (dy || 0) + ')"><path d="M36 8 A22 22 0 1 0 56 40 A18 18 0 0 1 36 8 Z" fill="#f3e6b0">' +
+      '<animate attributeName="opacity" values="1;.85;1" dur="5s" repeatCount="indefinite"/></path></g>';
+  }
+  function gotas(cuantas, color) {
+    var s = '', xs = [22, 31, 40, 49], i;
+    for (i = 0; i < cuantas; i++) {
+      var x = xs[i % 4], inicio = (i * 0.23).toFixed(2);
+      s += '<line x1="' + x + '" y1="50" x2="' + (x - 2.5) + '" y2="57" stroke="' + color + '" stroke-width="3" stroke-linecap="round" opacity="0">' +
+        '<animateTransform attributeName="transform" type="translate" values="0 -3;-4 9" dur="0.9s" begin="' + inicio + 's" repeatCount="indefinite"/>' +
+        '<animate attributeName="opacity" values="0;1;0" dur="0.9s" begin="' + inicio + 's" repeatCount="indefinite"/></line>';
+    }
+    return s;
+  }
+  function copos() {
+    var s = '', xs = [22, 31, 40, 49], i;
+    for (i = 0; i < 4; i++) {
+      s += '<circle cx="' + xs[i] + '" cy="52" r="2.6" fill="#fff" opacity="0">' +
+        '<animateTransform attributeName="transform" type="translate" values="0 -2;' + (i % 2 ? 3 : -3) + ' 10" dur="2.4s" begin="' + (i * 0.5) + 's" repeatCount="indefinite"/>' +
+        '<animate attributeName="opacity" values="0;1;0" dur="2.4s" begin="' + (i * 0.5) + 's" repeatCount="indefinite"/></circle>';
+    }
+    return s;
+  }
+  function rayoIcono() {
+    return '<path d="M34 38 L25 52 H32 L29 63 L43 45 H35 L39 38 Z" fill="#ffd93b">' +
+      '<animate attributeName="opacity" values="1;1;.15;1;.2;1;1" keyTimes="0;.55;.6;.65;.7;.75;1" dur="2.6s" repeatCount="indefinite"/></path>';
+  }
+  function niebla() {
+    var s = '', i;
+    for (i = 0; i < 3; i++) {
+      s += '<rect x="' + (12 + i * 4) + '" y="' + (24 + i * 11) + '" width="' + (40 - i * 4) + '" height="5" rx="2.5" fill="#cfd6e4">' +
+        '<animateTransform attributeName="transform" type="translate" values="0 0;' + (i % 2 ? -5 : 5) + ' 0;0 0" dur="' + (4 + i) + 's" repeatCount="indefinite"/></rect>';
+    }
+    return s;
+  }
+  function svgIcono(contenido) { return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' + contenido + '</svg>'; }
+
+  // Códigos WMO de Open-Meteo -> tipo de icono, texto y nivel de lluvia (0 nada, 1 llovizna, 2 lluvia, 3 fuerte)
+  function describir(codigo, esDia) {
+    var c = codigo;
+    if (c === 0) return { icono: esDia ? 'sol' : 'luna', texto: esDia ? 'Despejado' : 'Noche despejada', lluvia: 0 };
+    if (c === 1) return { icono: esDia ? 'sol' : 'luna', texto: 'Mayormente despejado', lluvia: 0 };
+    if (c === 2) return { icono: esDia ? 'solnube' : 'lunanube', texto: 'Parcialmente nublado', lluvia: 0 };
+    if (c === 3) return { icono: 'nube', texto: 'Nublado', lluvia: 0 };
+    if (c === 45 || c === 48) return { icono: 'niebla', texto: 'Niebla', lluvia: 0 };
+    if (c >= 51 && c <= 57) return { icono: 'lluvia', texto: 'Llovizna', lluvia: 1 };
+    if (c === 61 || c === 80) return { icono: 'lluvia', texto: c === 80 ? 'Chubascos' : 'Lluvia ligera', lluvia: 2 };
+    if (c === 63 || c === 81 || c === 66) return { icono: 'lluvia', texto: c === 63 ? 'Lluvia' : 'Chubascos', lluvia: 2 };
+    if (c === 65 || c === 82 || c === 67) return { icono: 'lluvia', texto: 'Lluvia fuerte', lluvia: 3 };
+    if (c >= 71 && c <= 77 || c === 85 || c === 86) return { icono: 'nieve', texto: 'Nieve', lluvia: 0 };
+    if (c === 95) return { icono: 'tormenta', texto: 'Tormenta eléctrica', lluvia: 3, tormenta: true };
+    if (c === 96 || c === 99) return { icono: 'tormenta', texto: 'Tormenta con granizo', lluvia: 3, tormenta: true };
+    return { icono: 'nube', texto: 'Nublado', lluvia: 0 };
+  }
+
+  function dibujarIcono(tipo) {
+    switch (tipo) {
+      case 'sol': return svgIcono(sol(32, 32, 12));
+      case 'luna': return svgIcono(luna(0, 2));
+      case 'solnube': return svgIcono(sol(24, 24, 9) + nube('#e8edf5', 4, 6));
+      case 'lunanube': return svgIcono(luna(-10, -8).replace('<g ', '<g opacity=".95" ') + nube('#c9d1e0', 4, 6));
+      case 'nube': return svgIcono(nube('#dfe5f0', 0, 2));
+      case 'niebla': return svgIcono(niebla());
+      case 'lluvia': return svgIcono(nube('#a9b4c8', 0, -4) + gotas(4, '#6fb6ff'));
+      case 'nieve': return svgIcono(nube('#cfd6e4', 0, -4) + copos());
+      case 'tormenta': return svgIcono(nube('#7f8aa0', 0, -6) + gotas(3, '#6fb6ff') + rayoIcono());
+    }
+    return '';
+  }
+
+  // ---------- Lluvia de fondo (canvas a media resolución, solo corre si está lloviendo) ----------
+  var LLUVIA = { cv: porId('lluvia'), gotas: [], corriendo: false, ultimo: 0, tormenta: false, temporizadorRayo: null };
+  var NIVELES_LLUVIA = [0, 70, 150, 260];
+
+  function reponerGota(g, desdeArriba) {
+    g.x = Math.random() * 1000 - 20;
+    g.y = desdeArriba ? -Math.random() * 60 : Math.random() * 540;
+    g.largo = 10 + Math.random() * 16;
+    g.vel = 14 + Math.random() * 12;
+    g.cerca = Math.random() < 0.35;
+  }
+
+  function cuadroLluvia(t) {
+    if (!LLUVIA.corriendo) return;
+    window.requestAnimationFrame(cuadroLluvia);
+    if (t - LLUVIA.ultimo < 33) return;       // unos 30 cuadros por segundo
+    LLUVIA.ultimo = t;
+    var ctx = LLUVIA.cv.getContext('2d');
+    ctx.clearRect(0, 0, 960, 540);
+    var pasada, i, g;
+    for (pasada = 0; pasada < 2; pasada++) {
+      ctx.strokeStyle = pasada ? 'rgba(200,220,255,.55)' : 'rgba(170,195,235,.28)';
+      ctx.lineWidth = pasada ? 1.4 : 1;
+      ctx.beginPath();
+      for (i = 0; i < LLUVIA.gotas.length; i++) {
+        g = LLUVIA.gotas[i];
+        if (g.cerca !== !!pasada) continue;
+        ctx.moveTo(g.x, g.y);
+        ctx.lineTo(g.x - g.largo * 0.16, g.y + g.largo);
+        g.y += g.vel * (pasada ? 1.25 : 1);
+        g.x -= g.vel * 0.16;
+        if (g.y > 545) reponerGota(g, true);
+      }
+      ctx.stroke();
+    }
+  }
+
+  function destelloRayo() {
+    var r = porId('rayo');
+    r.style.opacity = '.5';
+    setTimeout(function () { r.style.opacity = '0.04'; }, 90);
+    setTimeout(function () { r.style.opacity = '.38'; }, 190);
+    setTimeout(function () { r.style.opacity = '0'; }, 330);
+  }
+  function programarRayo() {
+    clearTimeout(LLUVIA.temporizadorRayo);
+    if (!LLUVIA.tormenta) return;
+    LLUVIA.temporizadorRayo = setTimeout(function () { destelloRayo(); programarRayo(); }, 5000 + Math.random() * 9000);
+  }
+
+  function ponerLluvia(nivel, tormenta) {
+    var objetivo = NIVELES_LLUVIA[nivel] || 0;
+    while (LLUVIA.gotas.length < objetivo) { var g = {}; reponerGota(g, false); LLUVIA.gotas.push(g); }
+    LLUVIA.gotas.length = objetivo;
+    LLUVIA.tormenta = !!tormenta;
+    if (nivel > 0) {
+      escenario.className = 'lluvioso';
+      if (!LLUVIA.corriendo) { LLUVIA.corriendo = true; window.requestAnimationFrame(cuadroLluvia); }
+    } else {
+      escenario.className = '';
+      LLUVIA.corriendo = false;
+      setTimeout(function () { if (!LLUVIA.corriendo) LLUVIA.cv.getContext('2d').clearRect(0, 0, 960, 540); }, 1400);
+    }
+    programarRayo();
+  }
+
+  // ---------- Clima ----------
+  function mostrarClima(temp, codigo, esDia) {
+    var d = describir(codigo, esDia);
+    var el = porId('clima');
+    el.innerHTML = '<div class="icono">' + dibujarIcono(d.icono) + '</div>' +
+      '<span class="temp">' + Math.round(temp) + '°</span>' +
+      '<div><div class="cond">' + d.texto + '</div><div class="lugar">' + CONFIG.clima.lugar + '</div></div>';
+    el.className = 'pastilla visible';
+    ponerLluvia(d.lluvia, d.tormenta);
+
+    climaActual = { temp: temp, codigo: codigo, esDia: esDia };
+    var cielo = cieloDe(d, esDia);
+    APPS.clima.color = cielo[0];
+    var tile = porId('tile-clima');
+    if (tile) {
+      tile.style.background = 'linear-gradient(160deg,' + cielo[0] + ',' + cielo[1] + ')';
+      tile.innerHTML = '<div class="clima-mini"><div class="mini-icono">' + dibujarIcono(d.icono) + '</div>' +
+        '<div class="mini-temp">' + Math.round(temp) + '°</div></div><div class="mini-lugar">' + CONFIG.clima.lugar + '</div>';
+    }
+    if (porId('panel-clima').className === 'visible') pintarPanelClima();
+  }
+
+  // Colores del cielo según el clima: [claro, oscuro]
+  function cieloDe(d, esDia) {
+    if (d.tormenta) return ['#2c3150', '#121522'];
+    if (d.lluvia) return ['#48596f', '#1f2836'];
+    if (d.icono === 'nieve') return ['#7d8ca5', '#3a4558'];
+    if (d.icono === 'niebla') return ['#6b7484', '#343944'];
+    if (d.icono === 'nube') return ['#5d6d86', '#2c3646'];
+    return esDia ? ['#3b8fe0', '#1a5aa6'] : ['#1f3363', '#0b1229'];
+  }
+
+  // Iconos sin animación para las listas del pronóstico (más livianos para la tele)
+  function iconoQuieto(tipo) {
+    return dibujarIcono(tipo).replace(/<animate(Transform)?\b[^>]*\/>/g, '').replace(/opacity="0"/g, 'opacity="1"');
+  }
+
+  function pintarPanelClima() {
+    var a = climaActual;
+    if (!a) return;
+    var d = describir(a.codigo, a.esDia), cielo = cieloDe(d, a.esDia), r = datosClima;
+    var p = porId('panel-clima');
+    p.style.background = 'linear-gradient(180deg, ' + cielo[0] + ' 0%, ' + cielo[1] + ' 62%, #05070c 100%)';
+    var datos = [], hoy = '', i;
+    if (r && r.current) {
+      datos.push('Sensación ' + Math.round(r.current.apparent_temperature) + '°',
+        'Humedad ' + r.current.relative_humidity_2m + '%', 'Viento ' + Math.round(r.current.wind_speed_10m) + ' km/h');
+    }
+    if (r && r.daily) {
+      hoy = '<div class="grande">Máx ' + Math.round(r.daily.temperature_2m_max[0]) + '° · Mín ' + Math.round(r.daily.temperature_2m_min[0]) + '°</div>' +
+        '<div class="chico">Amanece ' + r.daily.sunrise[0].substr(11, 5) + ' · Anochece ' + r.daily.sunset[0].substr(11, 5) + '</div>';
+    }
+    var html = '<div class="pc-arriba"><div class="pc-icono">' + dibujarIcono(d.icono) + '</div><div>' +
+      '<div class="pc-lugar">Clima en ' + CONFIG.clima.lugar + '</div>' +
+      '<div class="pc-temp">' + Math.round(a.temp) + '°</div>' +
+      '<div class="pc-cond">' + d.texto + '</div>' +
+      '<div class="pc-datos">' + datos.join(' · ') + '</div></div>' +
+      '<div class="pc-hoy">' + hoy + '</div></div>';
+    if (r && r.hourly) {
+      html += '<div class="pc-titulo">Próximas horas</div><div class="pc-horas">';
+      for (i = 0; i < r.hourly.time.length && i < 12; i++) {
+        var hd = describir(r.hourly.weather_code[i], r.hourly.is_day[i] === 1), pp = r.hourly.precipitation_probability[i];
+        html += '<div class="pc-hora"><div class="h">' + (i === 0 ? 'Ahora' : r.hourly.time[i].substr(11, 5)) + '</div>' +
+          '<div class="i">' + iconoQuieto(hd.icono) + '</div><div class="t">' + Math.round(r.hourly.temperature_2m[i]) + '°</div>' +
+          '<div class="lluvia-prob">' + (pp >= 20 ? pp + '%' : '') + '</div></div>';
+      }
+      html += '</div>';
+    }
+    if (r && r.daily) {
+      html += '<div class="pc-titulo">Próximos días</div><div class="pc-dias">';
+      for (i = 0; i < r.daily.time.length && i < 7; i++) {
+        var f = r.daily.time[i].split('-'), dia = DIAS[new Date(Date.UTC(+f[0], +f[1] - 1, +f[2])).getUTCDay()];
+        var nombre = i === 0 ? 'Hoy' : (i === 1 ? 'Mañana' : dia.charAt(0).toUpperCase() + dia.slice(1));
+        var dd = describir(r.daily.weather_code[i], true), pd = r.daily.precipitation_probability_max[i];
+        html += '<div class="pc-dia"><div class="d">' + nombre + '</div><div class="i">' + iconoQuieto(dd.icono) + '</div>' +
+          '<div class="t">' + Math.round(r.daily.temperature_2m_max[i]) + '°<span>' + Math.round(r.daily.temperature_2m_min[i]) + '°</span></div>' +
+          '<div class="lluvia-prob">' + (pd >= 20 ? 'Lluvia ' + pd + '%' : '') + '</div></div>';
+      }
+      html += '</div>';
+    }
+    p.innerHTML = html + '<div class="pc-ayuda">Atrás para volver</div>';
+  }
+  function abrirClima() {
+    if (!climaActual) { avisar('El clima todavía está cargando'); return; }
+    pintarPanelClima();
+    porId('panel-clima').className = 'visible';
+  }
+  function cerrarClima() { porId('panel-clima').className = ''; }
+
+  // Para probar el aspecto sin esperar al clima real: ?clima=sol|noche|nublado|lluvia|fuerte|tormenta|nieve|niebla
+  var PRUEBAS = {
+    sol: [26, 0, 1], noche: [17, 0, 0], parcial: [22, 2, 1], nublado: [17, 3, 0], niebla: [11, 45, 1],
+    llovizna: [15, 53, 1], lluvia: [14, 63, 1], fuerte: [13, 65, 0], tormenta: [19, 95, 0], nieve: [-1, 73, 1]
+  };
+
+  var climaActual = null, datosClima = null;
+  function actualizarClima() {
+    var prueba = consulta.clima && PRUEBAS[consulta.clima];
+    if (prueba) mostrarClima(prueba[0], prueba[1], !!prueba[2]);
+    var c = CONFIG.clima;
+    pedirJSON('https://api.open-meteo.com/v1/forecast?latitude=' + c.lat + '&longitude=' + c.lon +
+      '&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m' +
+      '&hourly=temperature_2m,weather_code,is_day,precipitation_probability&forecast_hours=12' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&forecast_days=7' +
+      '&timezone=auto', function (r) {
+      datosClima = r;
+      var a = r.current;
+      if (!prueba) mostrarClima(a.temperature_2m, a.weather_code, a.is_day === 1);
+      else if (porId('panel-clima').className === 'visible') pintarPanelClima();
+    });
+  }
+
+  // ---------- Puntero del mouse ----------
+  // Al bajar de fila la pantalla sube y los mosaicos pasan por debajo de un puntero quieto.
+  // Solo dejamos que el mouse cambie el foco si se movió desde la última tecla.
+  var raton = { x: -1, y: -1 }, ratonEnTecla = { x: -2, y: -2 };
+  document.addEventListener('mousemove', function (e) { raton.x = e.clientX; raton.y = e.clientY; }, true);
+  function ratonQuieto(e) { return e.clientX === ratonEnTecla.x && e.clientY === ratonEnTecla.y; }
+
+  // ---------- Filas de apps (cada una centrada en la pantalla) ----------
+  var ANCHO = 276, SEPARACION = 22, PASO = ANCHO + SEPARACION, ALTO_FILA = 252;
+  var filas = [];            // filas[f][c] = { id, el, x }
+  var zona = 'apps', pos = { fila: 0, col: 0 }, idxHeroe = 0, heroes = [];
+
+  function construirApps() {
+    var contenedor = porId('apps');
+    CONFIG.filas.forEach(function (ids) {
+      var validas = ids.filter(function (id) { return APPS[id]; });
+      if (!validas.length) return;
+      var f = filas.length, fila = [];
+      var inicio = Math.round((1920 - (validas.length * PASO - SEPARACION)) / 2);
+      validas.forEach(function (id, c) {
+        var a = APPS[id], x = inicio + c * PASO;
+        var el = document.createElement('div');
+        el.className = 'app';
+        el.style.left = x + 'px';
+        el.style.top = (f * ALTO_FILA) + 'px';
+        var filtro = a.blanco ? 'filter:brightness(0) invert(1);' : '';
+        var cara = a.tipo === 'clima'
+          ? '<div class="cara" id="tile-clima" style="background:' + a.fondo + '"><div class="clima-mini">Clima</div></div>'
+          : '<div class="cara" style="background:' + a.fondo + '">' +
+            '<img src="' + a.logo + '" alt="' + a.nombre + '" style="height:' + a.alto + 'px;' + filtro + '">' + (a.extra || '') + '</div>';
+        el.innerHTML = cara + '<div class="nombre">' + a.nombre + '</div>';
+        contenedor.appendChild(el);
+        fila.push({ id: id, el: el, x: x });
+        el.addEventListener('mousemove', function (e) {
+          if (!ratonQuieto(e) && !(zona === 'apps' && pos.fila === f && pos.col === c)) irAApps(f, c);
+        });
+        el.addEventListener('click', function () { irAApps(f, c); abrir(); });
+      });
+      filas.push(fila);
+    });
+  }
+
+  var capaResplandor = 0;
+  function resplandor(color) {
+    var a = porId('resplandor-a'), b = porId('resplandor-b');
+    var nueva = capaResplandor === 0 ? b : a, vieja = capaResplandor === 0 ? a : b;
+    nueva.style.background = 'radial-gradient(closest-side, ' + color + ' 0%, rgba(0,0,0,0) 100%)';
+    nueva.className = 'capa resplandor activo';
+    vieja.className = 'capa resplandor';
+    capaResplandor = 1 - capaResplandor;
+  }
+
+  function pintarFoco() {
+    var enApps = zona === 'apps';
+    filas.forEach(function (fila, f) {
+      fila.forEach(function (t, c) {
+        t.el.className = 'app' + (enApps && f === pos.fila && c === pos.col ? ' foco' : '');
+      });
+    });
+    var t = filas[pos.fila][pos.col];
+    var vidrio = porId('vidrio');
+    vidrio.className = enApps ? 'visible' : '';
+    vidrio.style.transform = 'translate(' + t.x + 'px,' + (pos.fila * ALTO_FILA) + 'px) scale(1.1)';
+    porId('mover').className = enApps && pos.fila > 0 ? 'abajo' : '';
+    var h = heroes[idxHeroe], conBoton = h && h.app, enHeroe = zona === 'heroe';
+    porId('h-boton').className = enHeroe && conBoton ? 'foco' : '';
+    porId('h-pag').className = (conBoton ? '' : 'sin-boton') + (enHeroe && !conBoton ? ' foco' : '');
+    BOTONES.forEach(function (b, i) {
+      porId('btn-' + b.id).className = 'boton-liquido' + ((zona === 'arriba' || zona === 'menu') && i === idxBoton ? ' foco' : '') +
+        (zona === 'menu' && b.id === 'ajustes' ? ' abierto' : '');
+    });
+    resplandor(enApps ? APPS[t.id].color : ((h && (h.color || (APPS[h.app] && APPS[h.app].color))) || '#fff'));
+    try { localStorage.setItem('inicio.foco', JSON.stringify(pos)); } catch (e) {}
+  }
+
+  var ultimaCol = {};       // última app enfocada en cada fila
+  function irAApps(f, c) { zona = 'apps'; pos.fila = f; pos.col = c; ultimaCol[f] = c; pintarFoco(); }
+
+  // Arriba/abajo entre filas centradas: va a la app más cercana en horizontal.
+  // Si dos quedan a la misma distancia, vuelve a la que tenías enfocada en esa fila.
+  function cambiarFila(df) {
+    var f = pos.fila + df;
+    if (f < 0 || f >= filas.length) return false;
+    var x = filas[pos.fila][pos.col].x, mejor = 0;
+    filas[f].forEach(function (t, c) { if (Math.abs(t.x - x) < Math.abs(filas[f][mejor].x - x)) mejor = c; });
+    var previa = ultimaCol[f];
+    if (previa !== undefined && filas[f][previa] &&
+        Math.abs(filas[f][previa].x - x) <= Math.abs(filas[f][mejor].x - x) + 1) mejor = previa;
+    irAApps(f, mejor);
+    return true;
+  }
+
+  // ---------- Continuar viendo ----------
+  var capaArte = 0;
+  function mostrarHeroe(i, animar) {
+    var h = heroes[i];
+    if (!h) return;
+    idxHeroe = i;
+    var app = APPS[h.app];
+    var cont = porId('h-contenido');
+    porId('h-etiqueta').textContent = h.etiqueta || 'Continuar viendo';
+    porId('h-titulo').textContent = h.titulo || '';
+    porId('h-sub').textContent = h.subtitulo || '';
+    var chip = app ? 'en ' + app.nombre : (h.fuente || '');
+    porId('h-app').textContent = chip;
+    porId('h-app').style.display = chip ? '' : 'none';
+    porId('h-ejemplo').style.display = h.ejemplo ? '' : 'none';
+    // Barra de progreso solo si hay progreso; las estrellas de Letterboxd van en dorado
+    var conProgreso = typeof h.progreso === 'number';
+    document.querySelector('.barra').style.display = conProgreso ? '' : 'none';
+    porId('h-barra').style.width = Math.round((h.progreso || 0) * 100) + '%';
+    porId('h-rest').textContent = h.restante || '';
+    porId('h-rest').className = !conProgreso && h.restante ? 'estrellas' : '';
+    porId('h-boton').style.display = app ? '' : 'none';
+    porId('h-pag').className = app ? '' : 'sin-boton';
+    porId('h-pag').innerHTML = heroes.length > 1 ? '<b>' + (i + 1) + '</b> / ' + heroes.length + '  ‹ ›' : '';
+    if (animar) { cont.className = 'contenido'; void cont.offsetWidth; cont.className = 'contenido cambia'; }
+    var poster = porId('poster');
+    if (h.poster) {
+      poster.style.backgroundImage = 'url("' + h.poster + '")';
+      poster.className = animar ? 'visible' : 'visible';
+      if (animar) { poster.className = ''; void poster.offsetWidth; poster.className = 'visible cambia'; }
+    } else { poster.className = ''; }
+
+    var a = porId('arte-a'), b = porId('arte-b');
+    var nueva = capaArte === 0 ? b : a, vieja = capaArte === 0 ? a : b;
+    var fondo = h.imagen ? 'url("' + h.imagen + '")' : 'radial-gradient(ellipse at 78% 38%, ' + (h.color || '#333') + ' 0%, #000 72%)';
+    nueva.style.backgroundImage = fondo;
+    nueva.className = 'capa arte activo';
+    vieja.className = 'capa arte';
+    capaArte = 1 - capaArte;
+    if (zona === 'heroe') pintarFoco();
+  }
+
+  function cargarHeroes() {
+    pedirJSON('continuar.json', function (lista) {
+      heroes = (lista || []).filter(function (h) { return h && h.titulo; });
+      if (!heroes.length) { porId('heroe').className = 'vacio'; return; }
+      porId('heroe').className = '';
+      mostrarHeroe(Math.min(idxHeroe, heroes.length - 1), false);
+    }, function () { porId('heroe').className = 'vacio'; });
+  }
+
+  // ---------- Canción que suena (solo se muestra si hay datos) ----------
+  function mostrarCancion(d) {
+    var el = porId('sonando');
+    if (!d || !d.activo || !d.titulo) { el.className = 'pastilla'; return; }
+    el.innerHTML = '<div class="disco"><svg width="34" height="34" viewBox="0 0 24 24"><path fill="#fff" d="M9 18V6l11-2v12.2a3.2 3.2 0 1 1-2-3V7.4L11 8.6V18a3.2 3.2 0 1 1-2-3z" transform="translate(0 .5)"/></svg></div>' +
+      '<div class="textos"><div class="cancion"></div><div class="artista"></div></div>' +
+      '<div class="ecualizador"><i></i><i></i><i></i></div>';
+    el.querySelector('.cancion').textContent = d.titulo;
+    el.querySelector('.artista').textContent = d.artista || '';
+    el.className = 'pastilla visible';
+  }
+  function actualizarCancion() {
+    if (consulta.demo) { mostrarCancion({ activo: true, titulo: 'Canción de ejemplo', artista: 'Artista de ejemplo' }); return; }
+    pedirJSON('sonando.json', mostrarCancion, function () { mostrarCancion(null); });
+  }
+
+  // ---------- Abrir apps ----------
+  // VIDAA no documenta cómo abrir una app desde una página web: lo resolvemos en la tele con el panel de diagnóstico.
+  function abrir() {
+    var id = zona === 'apps' ? filas[pos.fila][pos.col].id : (heroes[idxHeroe] && heroes[idxHeroe].app);
+    var app = APPS[id];
+    if (id === 'clima') { abrirClima(); return; }
+    if (!app) { avisar('Este es tu diario de Letterboxd: usa ← → para recorrerlo'); return; }
+    if (CONFIG.vigilante) { pedirAlVigilante('abrir-app', id, ''); return; }
+    if (WEB_APPS[id]) { avisar('Abriendo ' + app.nombre + '…'); location.href = WEB_APPS[id]; return; }
+    if (DIAL_APPS[id]) { abrirPorDial(DIAL_APPS[id], app.nombre); return; }
+    avisar(id === 'netflix' ? 'Para Netflix usa el botón Netflix de tu control' : app.nombre + ' solo se puede abrir con el vigilante');
+  }
+
+  // Pide a la propia tele (DIAL) que abra una app. Primero por 127.0.0.1 (la tele misma),
+  // después por su dirección de red. Con no-cors no se lee la respuesta: solo importa que llegue.
+  function abrirPorDial(appDial, nombre) {
+    avisar('Abriendo ' + nombre + '…');
+    var hosts = ['127.0.0.1'];
+    try { var ip = String(Hisense_GetIPAddress() || ''); if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) hosts.push(ip); } catch (e) {}
+    (function intentar(i) {
+      if (i >= hosts.length) { avisar('No pude abrir ' + nombre); return; }
+      fetch('http://' + hosts[i] + ':' + PUERTO_DIAL + '/apps/' + appDial,
+        { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: '' })
+        .then(function () {}, function () { intentar(i + 1); });
+    })(0);
+  }
+
+  // ---------- Vigilante ----------
+  // Programa en un aparato siempre encendido que hace lo que una página no puede:
+  // abrir apps, los ajustes de la tele y el Bluetooth, por el canal oficial del control remoto.
+  function pedirAlVigilante(accion, valor, textoPendiente) {
+    if (!CONFIG.vigilante) { avisar(textoPendiente); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', CONFIG.vigilante + '/accion');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function () { if (xhr.status >= 400) avisar('El vigilante no pudo hacerlo'); };
+    xhr.onerror = function () { avisar('No encuentro al vigilante en la red'); };
+    xhr.send(JSON.stringify({ accion: accion, valor: valor || '' }));
+  }
+
+  // ---------- Botones redondos y menú de configuración ----------
+  var BOTONES = [{ id: 'auriculares' }, { id: 'ajustes' }];
+  var idxBoton = 1;
+
+  function usarBoton() {
+    if (BOTONES[idxBoton].id === 'ajustes') { abrirMenu(); return; }
+    pedirAlVigilante('auriculares', CONFIG.auriculares,
+      'Saca los ' + CONFIG.auriculares + ' del estuche y se conectan solos');
+  }
+
+  var MENU = [
+    { texto: 'Ajustes de la tele', nota: 'VIDAA', accion: function () {
+      pedirAlVigilante('ajustes-tv', '', 'Usa el botón de ajustes de tu control'); } },
+    { texto: 'Bluetooth y audio', nota: CONFIG.auriculares, accion: function () {
+      pedirAlVigilante('bluetooth', '', 'Abre los ajustes con tu control y busca Bluetooth'); } },
+    { texto: 'Ir al inicio de VIDAA', nota: 'botón Home', accion: function () {
+      pedirAlVigilante('inicio-vidaa', '', 'Pulsa Home en tu control'); } },
+    { texto: 'Pronóstico', nota: CONFIG.clima.lugar, accion: function () { abrirClima(); } },
+    { texto: 'Diagnóstico', nota: 'botón 0', accion: function () { alternarDiagnostico(); } },
+    { texto: 'Recargar pantalla', nota: '', accion: function () { location.reload(); } }
+  ];
+  var idxMenu = 0;
+
+  function pintarMenu() {
+    porId('menu-ajustes').innerHTML = MENU.map(function (m, i) {
+      return '<div class="opcion' + (i === idxMenu ? ' foco' : '') + '">' + m.texto +
+        (m.nota ? '<small>' + m.nota + '</small>' : '') + '</div>';
+    }).join('');
+  }
+  function abrirMenu() { zona = 'menu'; idxMenu = 0; pintarMenu(); porId('menu-ajustes').className = 'visible'; pintarFoco(); }
+  function cerrarMenu() { porId('menu-ajustes').className = ''; zona = 'arriba'; pintarFoco(); }
+  function moverMenu(d) { idxMenu = Math.max(0, Math.min(MENU.length - 1, idxMenu + d)); pintarMenu(); }
+  function elegirMenu() { var m = MENU[idxMenu]; cerrarMenu(); m.accion(); }
+
+  BOTONES.forEach(function (b, i) {
+    porId('btn-' + b.id).addEventListener('click', function () {
+      if (zona === 'menu') cerrarMenu();
+      zona = 'arriba'; idxBoton = i; pintarFoco(); usarBoton();
+    });
+  });
+  porId('menu-ajustes').addEventListener('click', function (e) {
+    var opciones = porId('menu-ajustes').children;
+    for (var i = 0; i < opciones.length; i++) {
+      if (opciones[i] === e.target || opciones[i].contains(e.target)) { idxMenu = i; elegirMenu(); return; }
+    }
+  });
+  var temporizadorAviso;
+  function avisar(texto) {
+    var el = porId('aviso');
+    el.textContent = texto;
+    el.className = 'visible';
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(function () { el.className = ''; }, 2800);
+  }
+
+  // ---------- Diagnóstico: qué funciones de la tele ve esta página ----------
+  function alternarDiagnostico() {
+    var panel = porId('diagnostico');
+    if (panel.className === 'visible') { panel.className = ''; return; }
+    var nombres = [];
+    try {
+      Object.getOwnPropertyNames(window).forEach(function (n) {
+        if (/hisense|hiutils|vidaa|omi|tvapi|launch|appmanager/i.test(n)) nombres.push(n);
+      });
+    } catch (e) {}
+    nombres.sort();
+    panel.innerHTML = '<h2>Diagnóstico</h2>' +
+      '<div class="dato">Pantalla: ' + window.innerWidth + '×' + window.innerHeight + '</div>' +
+      '<div class="dato">' + navigator.userAgent + '</div>' +
+      '<div class="dato">Funciones de la tele encontradas: ' + nombres.length + '</div>' +
+      '<div class="funciones">' + (nombres.join('<br>') || '(ninguna)') + '</div>';
+    panel.className = 'visible';
+  }
+
+  // ---------- Control remoto / teclado ----------
+  document.addEventListener('keydown', function (e) {
+    var k = e.keyCode, diag = porId('diagnostico').className === 'visible';
+    ratonEnTecla = { x: raton.x, y: raton.y };
+    var atras = k === 8 || k === 27 || k === 461;
+    if (porId('panel-clima').className === 'visible') {                    // pronóstico abierto
+      if (atras || k === 13) cerrarClima();
+      e.preventDefault();
+      return;
+    }
+    if (diag && (atras || k === 13)) { alternarDiagnostico(); e.preventDefault(); return; }
+    if (k === 48 || k === 96 || k === 68) { alternarDiagnostico(); e.preventDefault(); return; }  // botón 0 (o D en la Mac)
+
+    // Zonas, de arriba a abajo: botones redondos (y su menú) → diario de Letterboxd → filas de apps
+    var manejada = true;
+    if (zona === 'menu') {
+      if (k === 38) moverMenu(-1);
+      else if (k === 40) moverMenu(1);
+      else if (k === 13) elegirMenu();
+      else if (atras || k === 37) cerrarMenu();
+      else manejada = false;
+    } else if (zona === 'arriba') {
+      if (k === 37) { if (idxBoton > 0) { idxBoton--; pintarFoco(); } }
+      else if (k === 39) { if (idxBoton < BOTONES.length - 1) { idxBoton++; pintarFoco(); } }
+      else if (k === 40) { if (heroes.length) { zona = 'heroe'; pintarFoco(); } else irAApps(0, pos.col); }
+      else if (k === 13) usarBoton();
+      else if (atras) irAApps(0, pos.col);
+      else manejada = false;
+    } else if (zona === 'heroe') {
+      if (k === 37) { if (idxHeroe > 0) mostrarHeroe(idxHeroe - 1, true); }
+      else if (k === 39) { if (idxHeroe < heroes.length - 1) mostrarHeroe(idxHeroe + 1, true); }
+      else if (k === 38) { zona = 'arriba'; pintarFoco(); }
+      else if (k === 40 || atras) irAApps(0, pos.col);
+      else if (k === 13) abrir();
+      else manejada = false;
+    } else {
+      if (k === 37) { if (pos.col > 0) irAApps(pos.fila, pos.col - 1); }
+      else if (k === 39) { if (pos.col < filas[pos.fila].length - 1) irAApps(pos.fila, pos.col + 1); }
+      else if (k === 38) { if (!cambiarFila(-1)) { zona = heroes.length ? 'heroe' : 'arriba'; pintarFoco(); } }
+      else if (k === 40) cambiarFila(1);
+      else if (k === 13) abrir();
+      else if (atras) { if (pos.fila > 0) cambiarFila(-pos.fila); }
+      else manejada = false;
+    }
+    if (!manejada) return;
+    e.preventDefault();
+  });
+  porId('h-boton').addEventListener('click', abrir);
+
+  // ---------- Inicio ----------
+  // Si la pantalla la sirve el vigilante, él mismo atiende las acciones (abrir apps, teclas, etc.)
+  pedirJSON('/estado', function (r) {
+    if (!r || !r.vigilante) return;
+    informarDiagnostico();
+    if (!consulta.sinvigilante) CONFIG.vigilante = location.origin;   // ?sinvigilante=1 prueba la pantalla como si estuviera sola
+  });
+
+  // Le cuenta al vigilante qué funciones propias de VIDAA ve esta página (para saber qué puede hacer sola)
+  function informarDiagnostico() {
+    var nombres = [];
+    try {
+      Object.getOwnPropertyNames(window).forEach(function (n) {
+        if (/hisense|hiutils|vidaa|omi|tvapi|launch|appmanager|^hi[A-Z_]|vowos|webos|tizen/i.test(n)) nombres.push(n);
+      });
+    } catch (e) {}
+    // Qué hay dentro de los objetos propios de VIDAA (dos niveles, solo nombres y tipos)
+    var objetos = {};
+    ['vowOS', 'vowOSContext', 'omi_platform', 'opera_omi', 'Hisense'].forEach(function (raiz) {
+      var o = window[raiz], lista = [];
+      function recorrer(obj, ruta, nivel) {
+        if (!obj || nivel > 2) return;
+        var vistos = {};
+        for (var p = obj; p && p !== Object.prototype && p !== Function.prototype; p = Object.getPrototypeOf(p)) {
+          try {
+            Object.getOwnPropertyNames(p).forEach(function (k) {
+              if (vistos[k] || k === 'constructor') return;
+              vistos[k] = true;
+              var v; try { v = obj[k]; } catch (e) { v = undefined; }
+              lista.push(ruta + '.' + k + ' : ' + typeof v);
+              if (v && typeof v === 'object') recorrer(v, ruta + '.' + k, nivel + 1);
+            });
+          } catch (e) {}
+        }
+      }
+      if (o) recorrer(o, raiz, 0);
+      objetos[raiz] = o ? lista.slice(0, 300) : 'no existe';
+    });
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/diagnostico');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    var extras = {};
+    ['Hisense_GetDialInfo', 'Hisense_GetIPAddress'].forEach(function (f) {
+      try { var v = window[f](); extras[f] = typeof v === 'string' ? v : JSON.stringify(v); } catch (e) { extras[f] = 'error: ' + e.message; }
+    });
+    xhr.send(JSON.stringify({ funciones: nombres.sort(), objetos: objetos, extras: extras, agente: navigator.userAgent,
+      pantalla: window.innerWidth + 'x' + window.innerHeight }));
+  }
+  ajustarEscala();
+  window.addEventListener('resize', ajustarEscala);
+  construirApps();
+  try {
+    var g = JSON.parse(localStorage.getItem('inicio.foco'));
+    if (g && filas[g.fila] && filas[g.fila][g.col]) pos = { fila: g.fila, col: g.col };
+  } catch (e) {}
+  // primera vez sin animación, para que el brillo no entre deslizándose desde el borde
+  porId('vidrio').style.transition = porId('mover').style.transition = 'none';
+  pintarFoco();
+  setTimeout(function () { porId('vidrio').style.transition = porId('mover').style.transition = ''; }, 60);
+  actualizarHora();
+  setInterval(actualizarHora, 10000);
+  actualizarClima();
+  setInterval(actualizarClima, 10 * 60 * 1000);
+  cargarHeroes();
+  setInterval(cargarHeroes, 5 * 60 * 1000);
+  actualizarCancion();
+  setInterval(actualizarCancion, 20000);
+</script>
+</body>
+</html>
