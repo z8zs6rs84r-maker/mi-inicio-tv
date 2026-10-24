@@ -243,6 +243,15 @@
   .lluvia-prob { font-size: 22px; color: #8cc6ff; margin-top: 4px; min-height: 28px; }
   .pc-ayuda { position: absolute; left: 0; right: 0; bottom: 40px; text-align: center; font-size: 24px; color: var(--suave); }
 
+  /* Pruebas del botón de acción (temporales) */
+  #registro-prueba {
+    position: absolute; right: 40px; top: 40px; width: 820px; z-index: 40; padding: 24px 28px;
+    border-radius: 22px; background: rgba(0,0,0,.88); border: 2px solid #ffd36b;
+    font-family: Menlo, monospace; font-size: 24px; line-height: 1.45; color: #fff; pointer-events: none;
+  }
+  #registro-prueba div:first-child { color: #ffd36b; }
+  #marco-app { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; z-index: 35; background: #000; }
+
   #aviso {
     position: absolute; left: 50%; top: 48px; z-index: 20; transform: translate(-50%, -30px); opacity: 0;
     padding: 20px 38px; border-radius: 999px; background: rgba(40,40,44,.96); border: 1px solid rgba(255,255,255,.14);
@@ -888,6 +897,8 @@
       pedirAlVigilante('bluetooth', '', 'Abre los ajustes con tu control y busca Bluetooth'); } },
     { texto: 'Ir al inicio de VIDAA', nota: 'botón Home', accion: function () {
       pedirAlVigilante('inicio-vidaa', '', 'Pulsa Home en tu control'); } },
+    { texto: 'Prueba: botón de acción', nota: 'temporal', accion: function () { iniciarPruebaBoton(); } },
+    { texto: 'Prueba: HBO Max en ventana', nota: 'temporal', accion: function () { probarVentana('hbomax'); } },
     { texto: 'Pronóstico', nota: CONFIG.clima.lugar, accion: function () { abrirClima(); } },
     { texto: 'Diagnóstico', nota: 'botón 0', accion: function () { alternarDiagnostico(); } },
     { texto: 'Recargar pantalla', nota: '', accion: function () { location.reload(); } }
@@ -924,6 +935,69 @@
     el.className = 'visible';
     clearTimeout(temporizadorAviso);
     temporizadorAviso = setTimeout(function () { el.className = ''; }, 2800);
+  }
+
+  // ---------- Pruebas del botón de acción (temporales) ----------
+  // Muestran en pantalla qué avisos recibe la página cuando pulsas el botón de acción
+  // estando ya en Mi Inicio, y si una app web puede abrirse en una ventana dentro de la pantalla.
+  var registroPrueba = null, ocultaDesde = 0;
+  function anotar(texto) {
+    if (!registroPrueba) return;
+    var d = new Date(Date.now() + CONFIG.zonaHoraria * 3600000);
+    var linea = document.createElement('div');
+    linea.textContent = ('0' + d.getUTCMinutes()).slice(-2) + ':' + ('0' + d.getUTCSeconds()).slice(-2) + '  ' + texto;
+    registroPrueba.insertBefore(linea, registroPrueba.firstChild);
+    while (registroPrueba.children.length > 16) registroPrueba.removeChild(registroPrueba.lastChild);
+  }
+  function iniciarPruebaBoton() {
+    if (!registroPrueba) {
+      registroPrueba = document.createElement('div');
+      registroPrueba.id = 'registro-prueba';
+      escenario.appendChild(registroPrueba);
+      document.addEventListener('visibilitychange', function () {
+        anotar('visibilidad: ' + document.visibilityState);
+        if (document.visibilityState === 'hidden') ocultaDesde = Date.now();
+        else if (porId('marco-app')) { cerrarVentana(); anotar('volví: cerré la ventana'); }
+      });
+      ['focus', 'blur', 'pageshow', 'pagehide', 'hashchange'].forEach(function (ev) {
+        window.addEventListener(ev, function () { anotar('evento: ' + ev); });
+      });
+      window.addEventListener('message', function (e) {
+        anotar('mensaje de ' + e.origin + ': ' + String(typeof e.data === 'string' ? e.data : JSON.stringify(e.data)).slice(0, 80));
+      });
+      document.addEventListener('keydown', function (e) { anotar('tecla ' + e.keyCode + (e.key ? ' ' + e.key : '')); }, true);
+      try {
+        if (typeof window.CSLaunchCallback === 'function') {
+          var original = window.CSLaunchCallback;
+          window.CSLaunchCallback = function () {
+            anotar('CSLaunchCallback ' + JSON.stringify([].slice.call(arguments)).slice(0, 160));
+            return original.apply(this, arguments);
+          };
+        }
+      } catch (e) {}
+      try {
+        if (window.launchQueue && launchQueue.setConsumer) {
+          launchQueue.setConsumer(function (p) { anotar('launchQueue ' + (p && p.targetURL)); });
+        }
+      } catch (e) {}
+      anotar('CSLaunchCallback: ' + typeof window.CSLaunchCallback + ', launchQueue: ' + typeof window.launchQueue);
+    }
+    anotar('Prueba lista: pulsa el botón de acción');
+  }
+  function probarVentana(id) {
+    iniciarPruebaBoton();
+    cerrarVentana();
+    var marco = document.createElement('iframe');
+    marco.id = 'marco-app';
+    marco.setAttribute('allow', 'encrypted-media; autoplay; fullscreen');
+    marco.src = WEB_APPS[id];
+    marco.onload = function () { anotar('ventana cargó (' + id + ')'); try { marco.focus(); } catch (e) {} };
+    escenario.appendChild(marco);
+    anotar('abriendo ' + id + ' en ventana');
+  }
+  function cerrarVentana() {
+    var marco = porId('marco-app');
+    if (marco) marco.parentNode.removeChild(marco);
   }
 
   // ---------- Diagnóstico: qué funciones de la tele ve esta página ----------
