@@ -2,6 +2,15 @@
   {
     "etiqueta": "Visto recientemente",
     "fuente": "Letterboxd",
+    "titulo": "War of the Worlds",
+    "subtitulo": "2005 · visto el 25 de octubre · otra vez",
+    "restante": "★★★★½",
+    "poster": "https://a.ltrbxd.com/resized/film-poster/5/1/9/7/6/51976-war-of-the-worlds-0-600-0-900-crop.jpg?v=762a144731",
+    "color": "hsl(273, 55%, 30%)"
+  },
+  {
+    "etiqueta": "Visto recientemente",
+    "fuente": "Letterboxd",
     "titulo": "Hocus Pocus",
     "subtitulo": "1993 · visto el 22 de octubre",
     "restante": "★★★½",
@@ -61,14 +70,5 @@
     "restante": "★★★★",
     "poster": "https://a.ltrbxd.com/resized/film-poster/5/1/7/1/2/51712-the-devil-wears-prada-0-600-0-900-crop.jpg?v=65a9cdb330",
     "color": "hsl(297, 55%, 30%)"
-  },
-  {
-    "etiqueta": "Visto recientemente",
-    "fuente": "Letterboxd",
-    "titulo": "Disclosure Day",
-    "subtitulo": "2026 · visto el 8 de julio",
-    "restante": "★★★",
-    "poster": "https://a.ltrbxd.com/resized/film-poster/1/1/5/9/2/5/1/1159251-disclosure-day-0-600-0-900-crop.jpg?v=9ae810e4bb",
-    "color": "hsl(201, 55%, 30%)"
   }
 ]
