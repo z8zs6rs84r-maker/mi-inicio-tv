@@ -2,6 +2,15 @@
   {
     "etiqueta": "Visto recientemente",
     "fuente": "Letterboxd",
+    "titulo": "The Hunger Games: Sunrise on the Reaping",
+    "subtitulo": "2026 · visto el 19 de noviembre",
+    "restante": "★★½",
+    "poster": "https://a.ltrbxd.com/resized/film-poster/1/1/8/2/6/9/2/1182692-the-hunger-games-sunrise-on-the-reaping-0-600-0-900-crop.jpg?v=91001efc76",
+    "color": "hsl(196, 55%, 30%)"
+  },
+  {
+    "etiqueta": "Visto recientemente",
+    "fuente": "Letterboxd",
     "titulo": "Primetime",
     "subtitulo": "2026 · visto el 13 de noviembre",
     "restante": "★★★★",
@@ -61,14 +70,5 @@
     "restante": "★★★",
     "poster": "https://a.ltrbxd.com/resized/film-poster/1/1/9/5/5/8/6/1195586-the-devil-wears-prada-2-0-600-0-900-crop.jpg?v=0d955add69",
     "color": "hsl(259, 55%, 30%)"
-  },
-  {
-    "etiqueta": "Visto recientemente",
-    "fuente": "Letterboxd",
-    "titulo": "The Odyssey",
-    "subtitulo": "2026 · visto el 22 de julio",
-    "restante": "★★★★★",
-    "poster": "https://a.ltrbxd.com/resized/film-poster/1/2/5/5/3/9/4/1255394-the-odyssey-2026-0-600-0-900-crop.jpg?v=1eed046d0c",
-    "color": "hsl(113, 55%, 30%)"
   }
 ]
